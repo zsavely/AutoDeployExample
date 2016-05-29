@@ -28,7 +28,7 @@ android {
   buildToolsVersion "23.0.3"
   defaultConfig {
     // Include all fields for later usage in developer options menu. Can be accessed via BuildConfig class.
-    buildConfigField 'boolean', 'CI', "\"${isCi}\""
+    buildConfigField 'boolean', 'CI', "${isCi}"
     buildConfigField 'String', 'BUILD_DATE_STRING', "\"${getDateString(buildDate)}\""
     buildConfigField 'long', 'BUILD_DATE_LONG', "${getBuildDateLong(buildDate)}L"
     buildConfigField 'String', 'GIT_SHA', "\"${gitLocalSha()}\""
