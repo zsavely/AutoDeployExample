@@ -1,0 +1,35 @@
+sudo: false
+
+language: android
+jdk: oraclejdk8
+
+env:
+  global:
+  - ANDROID_TARGET=android-21
+  - ANDROID_ABI=armeabi-v7a
+  - TERM=dumb
+
+android:
+  components:
+  - platform-tools
+  - tools
+  - build-tools-23.0.3
+  - android-23
+
+before_install:
+- chmod +x gradlew
+
+script:
+- ./gradlew clean build connectedAndroidTest -PdisablePreDex --stacktrace
+
+notifications:
+  email: true
+
+deploy:
+  provider: releases
+  file: "autodeployapp/build/outputs/apk/autodeployapp*release*.apk"
+  file_glob: "true"
+  skip_cleanup: true
+  on:
+    branch: master
+    repo: zsavely/AutoDeploy

@@ -1,0 +1,154 @@
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+
+apply plugin: 'com.android.application'
+
+// Determines if the application was built on Continuous Integration Server.
+def isCi = "true".equals(System.getenv("CI"))
+
+// Travis and all CIs has a build number. We will use it for our code versioning.
+def travisBuildNumber = System.getenv("TRAVIS_BUILD_NUMBER")
+
+// Current build number.
+def int buildNumber = travisBuildNumber != null ? Integer.valueOf(travisBuildNumber) : 1
+
+// Build date.
+def Date buildDate = new Date();
+
+android {
+  signingConfigs {
+    config {
+      keyAlias 'AutoDeploySample'
+      keyPassword 'AutoDeploySample'
+      storeFile file('AutoDeploySample.jks')
+      storePassword 'AutoDeploySample'
+    }
+  }
+  compileSdkVersion 23
+  buildToolsVersion "23.0.3"
+  defaultConfig {
+    // Include all fields for later usage in developer options menu. Can be accessed via BuildConfig class.
+    buildConfigField 'boolean', 'CI', "\"${isCi}\""
+    buildConfigField 'String', 'BUILD_DATE_STRING', "\"${getDateString(buildDate)}\""
+    buildConfigField 'long', 'BUILD_DATE_LONG', "${getBuildDateLong(buildDate)}L"
+    buildConfigField 'String', 'GIT_SHA', "\"${gitLocalSha()}\""
+    buildConfigField 'long', 'GIT_UNIX_TIMESTAMP', "${gitTimestamp()}L"
+    buildConfigField 'String', 'GIT_TIMESTAMP_STRING', "\"${gitTimestampString()}\""
+
+    applicationId "com.szagurskii.autodeploy"
+    minSdkVersion 14
+    targetSdkVersion 23
+    versionCode buildNumber
+    versionName "1.0"
+  }
+  buildTypes {
+    release {
+      minifyEnabled true
+      shrinkResources true
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+      signingConfig signingConfigs.config
+    }
+  }
+}
+
+dependencies {
+  testCompile 'junit:junit:4.12'
+}
+
+// Change apk name.
+android.applicationVariants.all { variant ->
+  for (output in variant.outputs) {
+    def outputFile = output.outputFile
+    if (outputFile != null && outputFile.name.endsWith('.apk')) {
+      // Get flavor from the application variant.
+      def flavor = "";
+      if (!variant.productFlavors.isEmpty()) {
+        flavor = variant.productFlavors.get(0).name;
+      }
+
+      // If this is a release version of APK, fully rename the file.
+      if ("release".equals(buildType.name) && isCi) {
+        def fileName = "autodeployapp-${versionCode}-${versionName}-${buildType.name}-${gitLocalSha()}.apk"
+        //noinspection GroovyAssignabilityCheck
+        output.outputFile = new File(outputFile.parent, fileName)
+      }
+    }
+  }
+}
+
+// Delete unaligned files.
+android.applicationVariants.all { variant ->
+  variant.assemble.doLast {
+    variant.outputs.each { output ->
+      if (isCi) {
+        println "aligned " + output.outputFile
+        println "unaligned " + output.packageApplication.outputFile
+
+        File unaligned = output.packageApplication.outputFile;
+        File aligned = output.outputFile
+        if (!unaligned.getName().equalsIgnoreCase(aligned.getName())) {
+          println "Deleting " + unaligned.getName()
+          unaligned.delete()
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Get SHA of the current commit.
+ */
+def gitLocalSha() {
+  def p = 'git rev-parse --short HEAD'.execute([], project.rootDir)
+  p.waitFor()
+  if (p.exitValue() != 0) {
+    throw new RuntimeException(p.errorStream.text)
+  }
+
+  return p.text.trim()
+}
+
+/**
+ * Get last commit timestamp.
+ */
+def gitTimestamp() {
+  def p = 'git log -n 1 --format=%at'.execute([], rootDir)
+  p.waitFor()
+  if (p.exitValue() != 0) {
+    throw new RuntimeException(p.errorStream.text)
+  }
+
+  return p.text.trim()
+}
+
+/**
+ * Get last commit timestamp in string.
+ */
+def String gitTimestampString() {
+  def p = 'git log -n 1 --format=%at'.execute([], rootDir)
+  p.waitFor()
+  if (p.exitValue() != 0) {
+    throw new RuntimeException(p.errorStream.text)
+  }
+
+  DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss z", Locale.getDefault());
+  dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+00:00"));
+
+  return dateFormat.format(new Date(1000L * Long.parseLong(p.text.trim())));
+}
+
+/**
+ * Get the long value from Date instance.
+ */
+def long getBuildDateLong(Date date) {
+  return date.getTime();
+}
+
+/**
+ * Get the build date in string in UTC.
+ */
+def String getDateString(Date date) {
+  DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss z", Locale.getDefault());
+  dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+00:00"));
+  return dateFormat.format(date);
+}
