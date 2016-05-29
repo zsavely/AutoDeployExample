@@ -16,6 +16,9 @@ before_install:
 script:
 - "./gradlew clean build connectedAndroidTest -PdisablePreDex --stacktrace"
 
+after_success:
+- sh set_tags.sh
+
 notifications:
   email: true
 
