@@ -32,3 +32,14 @@ deploy:
   on:
     branch: master
     repo: zsavely/AutoDeployExample
+
+
+before_cache:
+- rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+
+cache:
+  directories:
+  - "$HOME/.m2"
+  - "$HOME/.gradle"
+  - "$HOME/.gradle/caches/"
+  - "$HOME/.gradle/wrapper/"
