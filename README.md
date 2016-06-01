@@ -2,6 +2,8 @@ AutoDeployExample
 ========
 [![Build Status](https://travis-ci.org/zsavely/AutoDeployExample.svg?branch=master)](https://travis-ci.org/zsavely/AutoDeployExample)
    
+[Blogpost](http://szagurskii.com/blog/how-to-deploy-apk-to-github-releases-with-travis-ci/) explaining the issue.
+
 ### License
 
     The MIT License (MIT)
